@@ -13,11 +13,16 @@ def hamiltonian():
     return SparsePauliOp.from_list([("XX", 1), ("ZZ", 1)])
 
 def quantum_circuit(params):
-    qc = QuantumCircuit(2)
-    qc.h([0, 1])
+    qc = QuantumCircuit(4)
+    qc.h(range(4))
+    for i in range(4):
+        qc.ry(params[i], i)
     qc.cx(0, 1)
-    qc.ry(params[0], 0)
-    qc.ry(params[1], 1)
+    qc.cx(1, 2)
+    qc.cx(2, 3)
+    qc.cx(3, 0)
+    for i in range(4):
+        qc.rz(params[i+4], i)
     qc = qc.bind_parameters(params)
     return qc
 
