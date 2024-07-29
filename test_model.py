@@ -69,7 +69,7 @@ def calculate_hee(d):
     return entropy
 
 quantum_result = run_vqe()
-hee_result = calculate_hee(d=3)
+hee_result = calculate_hee(d=5)
 
 print("Quantum result:", quantum_result)
 print("Holographic Entanglement Entropy:", hee_result)
