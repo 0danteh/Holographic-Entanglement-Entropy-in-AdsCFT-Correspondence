@@ -7,6 +7,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import Operator
 from qiskit.opflow import I, X, Z
 from scipy.integrate import quad
+from scipy.optimize import minimize
 
 def hamiltonian():
     H = (X ^ X) + (Z ^ Z)
@@ -39,31 +40,36 @@ def run_vqe():
     result = vqe.compute_minimum_eigenvalue(operator=operator)
     return result
 
-def dz_dz(z):
-    return np.sqrt(1 - (z**2 / (1.0**2 / z**2)))
+def ads_metric(z, d):
+    return np.sqrt(1 + (d * z)**2)
 
-def area_integrand(z):
-    L = 1.0
-    return np.sqrt(1 + dz_dz(z)**2) * (L**2 / z**2)
-
-def compute_area(z_min, z_max):
-    area, _ = quad(area_integrand, z_min, z_max)
+def minimal_surface_area(params, z_min, z_max, d):
+    def integrand(z):
+        return ads_metric(z, d) * np.sqrt(1 + (dz_dz(z, params))**2) * z**(d-2)
+    
+    area, _ = quad(integrand, z_min, z_max)
     return area
+
+def dz_dz(z, params):
+    r = params[0]
+    return r * z
 
 def compute_entropy(area):
     G_N = 1.0
-    entropy = area / (4 * G_N)
-    return entropy
+    return area / (4 * G_N)
 
-def calculate_hee():
+def calculate_hee(d):
     z_min = 0.1
     z_max = 1.0
-    area = compute_area(z_min, z_max)
+    initial_params = [1.0]
+    result = minimize(lambda p: minimal_surface_area(p, z_min, z_max, d), initial_params)
+    optimal_params = result.x
+    area = minimal_surface_area(optimal_params, z_min, z_max, d)
     entropy = compute_entropy(area)
     return entropy
 
 quantum_result = run_vqe()
-hee_result = calculate_hee()
+hee_result = calculate_hee(d=3)
 
 print("Quantum result:", quantum_result)
 print("Holographic Entanglement Entropy:", hee_result)
