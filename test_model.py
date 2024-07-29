@@ -5,7 +5,7 @@ from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import Operator
-from qiskit.opflow import X, Z
+from qiskit.opflow import I, X, Z
 from scipy.integrate import quad
 
 def hamiltonian():
@@ -39,12 +39,12 @@ def run_vqe():
     result = vqe.compute_minimum_eigenvalue(operator=operator)
     return result
 
-def area_integrand(z):
-    L = 1.0
-    return np.sqrt(1 + (dz_dz(z))**2) * (L**2 / z**2)
-
 def dz_dz(z):
     return np.sqrt(1 - (z**2 / (1.0**2 / z**2)))
+
+def area_integrand(z):
+    L = 1.0
+    return np.sqrt(1 + dz_dz(z)**2) * (L**2 / z**2)
 
 def compute_area(z_min, z_max):
     area, _ = quad(area_integrand, z_min, z_max)
