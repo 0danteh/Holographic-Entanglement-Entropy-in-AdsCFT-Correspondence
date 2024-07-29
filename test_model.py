@@ -90,20 +90,20 @@ def hawking_temperature(M):
     return 0.1 * hbar * c**3 / (8 * np.pi * G * M * k_B)
 
 def simulate_hawking_radiation(M, r_range):
-    optimizer = COBYLA(maxiter=200)
-    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear', reps=2)
-    estimator = Estimator()
+    optimizer = SPSA(maxiter=100)
+    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear')
+    quantum_instance = QuantumInstance(Aer.get_backend('aer_simulator'))
+    vqe = VQE(ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
     
     radiation_spectrum = []
     for r in r_range:
         H = curved_spacetime_hamiltonian(r, M)
-        vqe = VQE(estimator, ansatz, optimizer)
-        result = vqe.compute_minimum_eigenvalue(H)
+        result = vqe.compute_minimum_eigenvalue(operator=H)
         
         T_H = hawking_temperature(M)
         
-        if T_H == 0:
-            print(f"Warning: Hawking temperature is zero for r = {r}")
+        if T_H <= 0:
+            print(f"Warning: Hawking temperature is non-positive for r = {r}")
             emission_prob = 0
         else:
             eigenvalue = np.real(result.eigenvalue)
@@ -111,16 +111,16 @@ def simulate_hawking_radiation(M, r_range):
                 print(f"Warning: Invalid eigenvalue {eigenvalue} for r = {r}")
                 emission_prob = 0
             else:
-                # Use a different approach for emission probability
                 emission_prob = 1 / (np.exp(eigenvalue / T_H) + 1)
         
         radiation_spectrum.append(emission_prob)
     
     return radiation_spectrum
 
+
+
 print(f"Radiation spectrum: {radiation_spectrum}")
 print(f"Sum of radiation spectrum: {sum(radiation_spectrum)}")
-
 
 def black_hole_evaporation(M_0, t_max, dt):
     M = M_0
@@ -177,14 +177,13 @@ r_range = np.linspace(2.1*M, 10*M, 100)  # Start from 2.1*M instead of 2*M
 radiation_spectrum = simulate_hawking_radiation(M, r_range)
 
 # Plot Hawking radiation spectrum
-plt.figure(figsize=(10, 6))
-plt.plot(r_range, radiation_spectrum)
+plt.figure(figsize=(12, 6))
+plt.plot(r_range, radiation_spectrum, color='b', linestyle='-', marker='o')
 plt.xlabel('Radius')
 plt.ylabel('Emission Probability')
 plt.title('Hawking Radiation Spectrum')
+plt.grid(True)
 plt.show()
-
-# Continuing from where we left off...
 
 # Black hole evaporation
 M_0 = 1.0  # Initial black hole mass
@@ -194,11 +193,12 @@ mass_over_time = black_hole_evaporation(M_0, t_max, dt)
 
 # Plot black hole evaporation
 times, masses = zip(*mass_over_time)
-plt.figure(figsize=(10, 6))
-plt.plot(times, masses)
+plt.figure(figsize=(12, 6))
+plt.plot(times, masses, color='r', linestyle='-', marker='x')
 plt.xlabel('Time')
 plt.ylabel('Black Hole Mass')
 plt.title('Black Hole Evaporation')
+plt.grid(True)
 plt.show()
 
 # Information paradox analysis
@@ -212,14 +212,15 @@ radiation_entropies = np.cumsum(radiation_spectrum)
 black_hole_entropies = [calculate_black_hole_entropy(4 * np.pi * m**2) for _, m in mass_over_time]
 entanglement_entropies = [calculate_entanglement_entropy(r, b) for r, b in zip(radiation_entropies, black_hole_entropies)]
 
-plt.figure(figsize=(10, 6))
-plt.plot(times, radiation_entropies, label='Radiation Entropy')
-plt.plot(times, black_hole_entropies, label='Black Hole Entropy')
-plt.plot(times, entanglement_entropies, label='Entanglement Entropy')
+plt.figure(figsize=(12, 6))
+plt.plot(times, radiation_entropies, color='g', linestyle='--', label='Radiation Entropy')
+plt.plot(times, black_hole_entropies, color='b', linestyle='-.', label='Black Hole Entropy')
+plt.plot(times, entanglement_entropies, color='m', linestyle=':', label='Entanglement Entropy')
 plt.xlabel('Time')
 plt.ylabel('Entropy')
 plt.title('Page Curve')
 plt.legend()
+plt.grid(True)
 plt.show()
 
 # Analyze the effect of different black hole masses
@@ -227,7 +228,7 @@ masses = [0.5, 1.0, 2.0]
 plt.figure(figsize=(12, 8))
 
 for M in masses:
-    r_range = np.linspace(2*M, 10*M, 100)
+    r_range = np.linspace(2.1*M, 10*M, 100)
     radiation_spectrum = simulate_hawking_radiation(M, r_range)
     plt.plot(r_range, radiation_spectrum, label=f'M = {M}')
 
@@ -235,6 +236,7 @@ plt.xlabel('Radius')
 plt.ylabel('Emission Probability')
 plt.title('Hawking Radiation Spectrum for Different Black Hole Masses')
 plt.legend()
+plt.grid(True)
 plt.show()
 
 # Analyze the effect of spacetime dimensionality
@@ -251,6 +253,7 @@ plt.xlabel('Radius')
 plt.ylabel('Minimal Surface Area')
 plt.title('Minimal Surface Area in Different Spacetime Dimensions')
 plt.legend()
+plt.grid(True)
 plt.show()
 
 # Analyze the Reissner-Nordström-AdS black hole
@@ -267,6 +270,7 @@ plt.xlabel('Radius')
 plt.ylabel('Minimal Surface Area')
 plt.title('Minimal Surface Area for Reissner-Nordström-AdS Black Hole')
 plt.legend()
+plt.grid(True)
 plt.show()
 
 # Final summary
