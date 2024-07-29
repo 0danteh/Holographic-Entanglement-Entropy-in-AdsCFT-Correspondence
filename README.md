@@ -2,8 +2,6 @@
 
 This repository contains a comprehensive simulation that combines quantum circuits, holographic entanglement entropy, and black hole thermodynamics to explore the information paradox and the behavior of quantum fields in curved spacetime. The results provide insights into Hawking radiation, black hole evaporation, and the preservation of information in quantum gravity.
 
-## Mathematical Background
-
 ### Quantum Hamiltonian
 
 The Hamiltonian used for quantum simulations is defined as:
