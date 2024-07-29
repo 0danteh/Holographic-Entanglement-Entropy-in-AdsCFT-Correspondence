@@ -100,15 +100,10 @@ def simulate_hawking_radiation(M, r_range):
         vqe = VQE(estimator, ansatz, optimizer)
         result = vqe.compute_minimum_eigenvalue(H)
         
-        # Debugging: Print Hamiltonian and eigenvalue
-        print(f"Hamiltonian for r = {r}: {H}")
-        print(f"Eigenvalue for r = {r}: {result.eigenvalue}")
-        
         T_H = hawking_temperature(M)
-        print(f"Hawking Temperature for M = {M}: {T_H}")
-
-        if T_H <= 0:
-            print(f"Warning: Hawking temperature is non-positive for r = {r}")
+        
+        if T_H == 0:
+            print(f"Warning: Hawking temperature is zero for r = {r}")
             emission_prob = 0
         else:
             eigenvalue = np.real(result.eigenvalue)
@@ -116,10 +111,8 @@ def simulate_hawking_radiation(M, r_range):
                 print(f"Warning: Invalid eigenvalue {eigenvalue} for r = {r}")
                 emission_prob = 0
             else:
-                try:
-                    emission_prob = 1 / (np.exp(eigenvalue / T_H) + 1)
-                except OverflowError:
-                    emission_prob = 0
+                # Using Bose-Einstein distribution for emission probability
+                emission_prob = 1 / (np.exp(abs(eigenvalue) / T_H) - 1)
         
         radiation_spectrum.append(emission_prob)
     
@@ -149,9 +142,7 @@ def calculate_black_hole_entropy(A):
     return k_B * c**3 * A / (4 * G * hbar)
 
 def information_paradox_analysis(radiation_spectrum, mass_over_time):
-    initial_entropy = calculate_black_hole_entropy(4 * np.pi * mass_over_time[0][1]**2)
-    
-    # Normalize the radiation spectrum
+    initial_entropy = calculate_black_hole_entropy(4 * np.pi * mass_over_time[0][1]**2)   
     total_radiation = sum(radiation_spectrum)
     normalized_spectrum = [prob / total_radiation for prob in radiation_spectrum]
     final_entropy = -sum([p * np.log(p) if p > 0 else 0 for p in normalized_spectrum])
@@ -167,16 +158,14 @@ def information_paradox_analysis(radiation_spectrum, mass_over_time):
     else:
         print("Information seems to be preserved (quantum resolution)")
 
-# Main execution
 quantum_result = run_vqe()
 hee_result = calculate_hee(d=5, M=1.0, L=1.0)
 
 print("Quantum result:", quantum_result)
 print("Holographic Entanglement Entropy:", hee_result)
 
-# Hawking radiation simulation
 M = 1.0  # Black hole mass
-r_range = np.linspace(2.1*M, 10*M, 100)  # Start from 2.1*M instead of 2*M
+r_range = np.linspace(2.1*M, 10*M, 100)
 radiation_spectrum = simulate_hawking_radiation(M, r_range)
 
 # Plot Hawking radiation spectrum
@@ -189,12 +178,11 @@ plt.grid(True)
 plt.show()
 
 # Black hole evaporation
-M_0 = 1.0  # Initial black hole mass
-t_max = 1000  # Maximum simulation time
+M_0 = 10.0  # Initial black hole mass
+t_max = 10  # Max time
 dt = 0.1  # Time step
 mass_over_time = black_hole_evaporation(M_0, t_max, dt)
 
-# Plot black hole evaporation
 times, masses = zip(*mass_over_time)
 plt.figure(figsize=(12, 6))
 plt.plot(times, masses, color='r', linestyle='-', marker='x')
@@ -207,26 +195,8 @@ plt.show()
 # Information paradox analysis
 information_paradox_analysis(radiation_spectrum, mass_over_time)
 
-# Additional analysis: Page curve
-def calculate_entanglement_entropy(radiation_entropy, black_hole_entropy):
-    return min(radiation_entropy, black_hole_entropy)
 
-radiation_entropies = np.cumsum(radiation_spectrum)
-black_hole_entropies = [calculate_black_hole_entropy(4 * np.pi * m**2) for _, m in mass_over_time]
-entanglement_entropies = [calculate_entanglement_entropy(r, b) for r, b in zip(radiation_entropies, black_hole_entropies)]
-
-plt.figure(figsize=(12, 6))
-plt.plot(times, radiation_entropies, color='g', linestyle='--', label='Radiation Entropy')
-plt.plot(times, black_hole_entropies, color='b', linestyle='-.', label='Black Hole Entropy')
-plt.plot(times, entanglement_entropies, color='m', linestyle=':', label='Entanglement Entropy')
-plt.xlabel('Time')
-plt.ylabel('Entropy')
-plt.title('Page Curve')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# Analyze the effect of different black hole masses
+# Analysis of different black hole masses
 masses = [0.5, 1.0, 2.0]
 plt.figure(figsize=(12, 8))
 
@@ -242,7 +212,7 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Analyze the effect of spacetime dimensionality
+# Analysis of different spacetime dimensions
 dimensions = [4, 5, 6]
 plt.figure(figsize=(12, 8))
 
@@ -259,7 +229,7 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Analyze the Reissner-Nordström-AdS black hole
+# Analysis of Reissner-Nordström-AdS black holes
 charges = [0, 0.5, 0.9]
 plt.figure(figsize=(12, 8))
 
@@ -275,20 +245,6 @@ plt.title('Minimal Surface Area for Reissner-Nordström-AdS Black Hole')
 plt.legend()
 plt.grid(True)
 plt.show()
-
-# Final summary
-print("\nFinal Summary:")
-print(f"Holographic Entanglement Entropy: {hee_result}")
-print(f"Initial Black Hole Mass: {M_0}")
-print(f"Final Black Hole Mass: {mass_over_time[-1][1]}")
-print(f"Total Radiation Entropy: {radiation_entropies[-1]}")
-print(f"Final Black Hole Entropy: {black_hole_entropies[-1]}")
-print(f"Final Entanglement Entropy: {entanglement_entropies[-1]}")
-
-if entanglement_entropies[-1] < black_hole_entropies[0]:
-    print("The entanglement entropy is less than the initial black hole entropy, suggesting information preservation.")
-else:
-    print("The entanglement entropy exceeds the initial black hole entropy, indicating potential information loss.")
 
 print("\nThis simulation combines quantum circuits, holographic entanglement entropy, and black hole thermodynamics")
 print("to explore the information paradox and the behavior of quantum fields in curved spacetime.")
