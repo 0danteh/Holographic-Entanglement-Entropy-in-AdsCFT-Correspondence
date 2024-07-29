@@ -1,13 +1,14 @@
 import numpy as np
 from qiskit import QuantumCircuit, Aer, execute
 from qiskit.algorithms import VQE
-from qiskit.algorithms.optimizers import SPSA
+from qiskit.algorithms.optimizers import SPSA, L_BFGS_B
 from qiskit.circuit.library import TwoLocal
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import Operator
 from qiskit.opflow import I, X, Z
 from scipy.integrate import quad
 from scipy.optimize import minimize
+from scipy.special import gamma
 
 def hamiltonian():
     H = (X ^ X) + (Z ^ Z)
@@ -32,7 +33,7 @@ def cost_function(params):
     return np.real(expectation_value)
 
 def run_vqe():
-    optimizer = SPSA(maxiter=100)
+    optimizer = L_BFGS_B(maxiter=200)
     ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear')
     quantum_instance = QuantumInstance(Aer.get_backend('aer_simulator'))
     vqe = VQE(ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
@@ -41,17 +42,18 @@ def run_vqe():
     return result
 
 def ads_metric(z, d):
-    return np.sqrt(1 + (d * z)**2)
+    return np.sqrt(1 + (z**2) / (1.0**2))
 
 def minimal_surface_area(params, z_min, z_max, d):
     def integrand(z):
-        return ads_metric(z, d) * np.sqrt(1 + (dz_dz(z, params))**2) * z**(d-2)
+        r = params[0]
+        dz_dz_value = dz_dz(z, r)
+        return ads_metric(z, d) * np.sqrt(1 + dz_dz_value**2) * z**(d-2)
     
     area, _ = quad(integrand, z_min, z_max)
     return area
 
-def dz_dz(z, params):
-    r = params[0]
+def dz_dz(z, r):
     return r * z
 
 def compute_entropy(area):
@@ -62,7 +64,7 @@ def calculate_hee(d):
     z_min = 0.1
     z_max = 1.0
     initial_params = [1.0]
-    result = minimize(lambda p: minimal_surface_area(p, z_min, z_max, d), initial_params)
+    result = minimize(lambda p: minimal_surface_area(p, z_min, z_max, d), initial_params, method='L-BFGS-B')
     optimal_params = result.x
     area = minimal_surface_area(optimal_params, z_min, z_max, d)
     entropy = compute_entropy(area)
