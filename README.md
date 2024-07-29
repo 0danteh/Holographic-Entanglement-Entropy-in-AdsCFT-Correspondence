@@ -2,12 +2,6 @@
 
 This repository contains a comprehensive simulation that combines quantum circuits, holographic entanglement entropy, and black hole thermodynamics to explore the information paradox and the behavior of quantum fields in curved spacetime. The results provide insights into Hawking radiation, black hole evaporation, and the preservation of information in quantum gravity.
 
-The main components of the code are:
-1. Variational Quantum Eigensolver (VQE) for quantum simulations.
-2. Holographic Entanglement Entropy (HEE) calculations.
-3. Black hole thermodynamics and Hawking radiation.
-4. Black hole evaporation and information paradox analysis.
-
 ## Mathematical Background
 
 ### Quantum Hamiltonian
