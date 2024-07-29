@@ -78,7 +78,7 @@ def calculate_hee(d, M, L, Q=0, metric_func=schwarzschild_ads_metric):
     return entropy
 
 def curved_spacetime_hamiltonian(r, M):
-    g_tt = 1 - 2*M/r
+    g_tt = 1 - 2 * M / r
     g_rr = -1 / g_tt
     return SparsePauliOp.from_list([("XI", 0.1 * g_tt), ("IX", 0.1 * g_rr), ("ZZ", 0.1)])
 
@@ -87,21 +87,26 @@ def hawking_temperature(M):
     c = 1.0
     k_B = 1.0
     G = 1.0
-    return 0.1 * hbar * c**3 / (8 * np.pi * G * M * k_B)
+    return hbar * c**3 / (8 * np.pi * G * M * k_B)
 
 def simulate_hawking_radiation(M, r_range):
-    optimizer = SPSA(maxiter=100)
-    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear')
-    quantum_instance = QuantumInstance(Aer.get_backend('aer_simulator'))
-    vqe = VQE(ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
+    optimizer = COBYLA(maxiter=200)
+    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear', reps=2)
+    estimator = Estimator()
     
     radiation_spectrum = []
     for r in r_range:
         H = curved_spacetime_hamiltonian(r, M)
-        result = vqe.compute_minimum_eigenvalue(operator=H)
+        vqe = VQE(estimator, ansatz, optimizer)
+        result = vqe.compute_minimum_eigenvalue(H)
+        
+        # Debugging: Print Hamiltonian and eigenvalue
+        print(f"Hamiltonian for r = {r}: {H}")
+        print(f"Eigenvalue for r = {r}: {result.eigenvalue}")
         
         T_H = hawking_temperature(M)
-        
+        print(f"Hawking Temperature for M = {M}: {T_H}")
+
         if T_H <= 0:
             print(f"Warning: Hawking temperature is non-positive for r = {r}")
             emission_prob = 0
@@ -111,16 +116,14 @@ def simulate_hawking_radiation(M, r_range):
                 print(f"Warning: Invalid eigenvalue {eigenvalue} for r = {r}")
                 emission_prob = 0
             else:
-                emission_prob = 1 / (np.exp(eigenvalue / T_H) + 1)
+                try:
+                    emission_prob = 1 / (np.exp(eigenvalue / T_H) + 1)
+                except OverflowError:
+                    emission_prob = 0
         
         radiation_spectrum.append(emission_prob)
     
     return radiation_spectrum
-
-
-
-print(f"Radiation spectrum: {radiation_spectrum}")
-print(f"Sum of radiation spectrum: {sum(radiation_spectrum)}")
 
 def black_hole_evaporation(M_0, t_max, dt):
     M = M_0
@@ -277,7 +280,7 @@ plt.show()
 print("\nFinal Summary:")
 print(f"Holographic Entanglement Entropy: {hee_result}")
 print(f"Initial Black Hole Mass: {M_0}")
-print(f"Final Black Hole Mass: {masses[-1]}")
+print(f"Final Black Hole Mass: {mass_over_time[-1][1]}")
 print(f"Total Radiation Entropy: {radiation_entropies[-1]}")
 print(f"Final Black Hole Entropy: {black_hole_entropies[-1]}")
 print(f"Final Entanglement Entropy: {entanglement_entropies[-1]}")
