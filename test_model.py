@@ -5,10 +5,8 @@ from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.circuit.library import TwoLocal
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import Operator
-from qiskit.opflow import I, X, Z
 from scipy.integrate import quad
 from scipy.optimize import minimize
-from scipy.optimize import differential_evolution
 
 def hamiltonian():
     H = (X ^ X) + (Z ^ Z)
@@ -41,39 +39,46 @@ def run_vqe():
     result = vqe.compute_minimum_eigenvalue(operator=operator)
     return result
 
-def ads_metric(z, d, parameters):
-    return np.sqrt(1 + np.sum([(p * z)**2 for p in parameters]))
+def schwarzschild_ads_metric(r, M, L, d):
+    term1 = 1 - (2 * M / r**(d-3))
+    term2 = r**2 / L**2
+    return np.sqrt(term1 + term2)
 
-def dz_dz(z, params):
-    return np.array([p * z for p in params])
+def reissner_nordstrom_ads_metric(r, M, Q, L, d):
+    term1 = 1 - (2 * M / r**(d-3))
+    term2 = r**2 / L**2
+    term3 = Q**2 / r**(2 * (d-3))
+    return np.sqrt(term1 + term2 - term3)
 
-def minimal_surface_area(params, z_min, z_max, d):
+def dz_dz(z, r, d):
+    return r * z
+
+def minimal_surface_area(params, z_min, z_max, d, metric_func, M, Q=0):
     def integrand(z):
-        dz_dz_values = dz_dz(z, params)
-        metric = ads_metric(z, d, params)
-        return metric * np.sqrt(1 + np.sum(dz_dz_values**2)) * z**(d-2)
+        r = params[0]
+        metric = metric_func(r, M, Q, L, d)
+        dz_dz_value = dz_dz(z, r, d)
+        return metric * np.sqrt(1 + dz_dz_value**2) * z**(d-2)
     
-    area, _ = quad(integrand, z_min, z_max, epsabs=1.0e-8, epsrel=1.0e-8)
+    area, _ = quad(integrand, z_min, z_max, epsabs=1.0e-6, epsrel=1.0e-6)
     return area
 
 def compute_entropy(area):
     G_N = 1.0
     return area / (4 * G_N)
 
-def calculate_hee(d):
+def calculate_hee(d, M, Q=0, metric_func=schwarzschild_ads_metric):
     z_min = 0.1
     z_max = 1.0
-    initial_params = [1.0] * 3
-    bounds = [(0, 5)] * len(initial_params)
-    result = differential_evolution(lambda p: minimal_surface_area(p, z_min, z_max, d), bounds)
-    
+    initial_params = [1.0]
+    result = minimize(lambda p: minimal_surface_area(p, z_min, z_max, d, metric_func, M, Q), initial_params, method='L-BFGS-B')
     optimal_params = result.x
-    area = minimal_surface_area(optimal_params, z_min, z_max, d)
+    area = minimal_surface_area(optimal_params, z_min, z_max, d, metric_func, M, Q)
     entropy = compute_entropy(area)
     return entropy
 
 quantum_result = run_vqe()
-hee_result = calculate_hee(d=5)
+hee_result = calculate_hee(d=5, M=1.0)  # For Schwarzschild-AdS; set Q=0 for Reissner-Nordström-AdS
 
 print("Quantum result:", quantum_result)
 print("Holographic Entanglement Entropy:", hee_result)
