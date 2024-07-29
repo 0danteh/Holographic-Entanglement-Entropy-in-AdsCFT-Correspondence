@@ -80,18 +80,18 @@ def calculate_hee(d, M, L, Q=0, metric_func=schwarzschild_ads_metric):
 def curved_spacetime_hamiltonian(r, M):
     g_tt = 1 - 2*M/r
     g_rr = -1 / g_tt
-    return SparsePauliOp.from_list([("XI", g_tt), ("IX", g_rr), ("ZZ", 1)])
+    return SparsePauliOp.from_list([("XI", 0.1 * g_tt), ("IX", 0.1 * g_rr), ("ZZ", 0.1)])
 
 def hawking_temperature(M):
     hbar = 1.0
     c = 1.0
     k_B = 1.0
     G = 1.0
-    return hbar * c**3 / (8 * np.pi * G * M * k_B)
+    return 0.1 * hbar * c**3 / (8 * np.pi * G * M * k_B)
 
 def simulate_hawking_radiation(M, r_range):
-    optimizer = COBYLA(maxiter=200)  # Increase max iterations
-    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear', reps=2)  # Increase reps
+    optimizer = COBYLA(maxiter=200)
+    ansatz = TwoLocal(2, 'ry', 'cz', entanglement='linear', reps=2)
     estimator = Estimator()
     
     radiation_spectrum = []
@@ -111,13 +111,8 @@ def simulate_hawking_radiation(M, r_range):
                 print(f"Warning: Invalid eigenvalue {eigenvalue} for r = {r}")
                 emission_prob = 0
             else:
-                emission_prob = np.exp(-eigenvalue / T_H)
-                if np.isnan(emission_prob) or np.isinf(emission_prob):
-                    print(f"Warning: Invalid emission probability for r = {r}, eigenvalue = {eigenvalue}, T_H = {T_H}")
-                    emission_prob = 0
-                elif emission_prob > 1e10:  # Add a cut-off for very large probabilities
-                    print(f"Warning: Extremely large emission probability ({emission_prob}) for r = {r}, capped at 1e10")
-                    emission_prob = 1e10
+                # Use a different approach for emission probability
+                emission_prob = 1 / (np.exp(eigenvalue / T_H) + 1)
         
         radiation_spectrum.append(emission_prob)
     
